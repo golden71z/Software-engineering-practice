@@ -1,0 +1,26 @@
+{
+  "java.configuration.runtimes": [
+    {
+      "name": "JavaSE-17",
+      "path": "C:\\Program Files\\Eclipse Adoptium\\jdk-17.0.20.101-hotspot",
+      "default": true
+    }
+  ],
+  "java.compile.nullAnalysis.mode": "automatic",
+  "files.encoding": "utf8",
+  "files.eol": "\n",
+  "editor.tabSize": 4,
+  "[vue]": {
+    "editor.tabSize": 2
+  },
+  "[javascript]": {
+    "editor.tabSize": 2
+  },
+  "[json]": {
+    "editor.tabSize": 2
+  },
+  "files.exclude": {
+    "**/node_modules": true,
+    "**/target": true
+  }
+}
