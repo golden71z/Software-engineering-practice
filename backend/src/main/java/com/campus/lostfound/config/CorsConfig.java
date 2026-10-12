@@ -9,7 +9,7 @@ import org.springframework.web.filter.CorsFilter;
 /**
  * 跨域配置
  * <p>
- * 前后端分离架构下，前端（5173）与后端（8080）端口不同，属于跨域请求。
+ * 前后端分离架构下，前端（8090）与后端（8080）端口不同，属于跨域请求。
  * 开发阶段放开跨域；生产环境应通过 Nginx 反向代理统一域名，或收紧 allowedOriginPatterns。
  */
 @Configuration

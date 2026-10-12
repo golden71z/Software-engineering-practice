@@ -84,7 +84,7 @@ npm install
 npm run dev
 ```
 
-前端默认运行在 `http://localhost:5173`，已配置代理将 `/api` 请求转发到后端。
+前端默认运行在 `http://localhost:8090`，已配置代理将 `/api` 请求转发到后端。
 
 ## 功能模块
 

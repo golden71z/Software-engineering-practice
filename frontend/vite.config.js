@@ -12,7 +12,7 @@ export default defineConfig({
   },
 
   server: {
-    port: 5173,
+    port: 8090,
     open: false,
     proxy: {
       // 将 /api 开头的请求代理到后端，避免开发阶段的跨域问题
