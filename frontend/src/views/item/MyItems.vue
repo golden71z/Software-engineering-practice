@@ -45,14 +45,6 @@
               编辑
             </el-button>
             <el-button
-              v-if="row.status === 'published'"
-              link
-              type="success"
-              @click="onReturned(row)"
-            >
-              标记归还
-            </el-button>
-            <el-button
               v-if="row.status !== 'offline'"
               link
               type="warning"
@@ -86,7 +78,7 @@ import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
-import { listMyItems, markReturned, offlineItem, restoreItem } from '@/api/item'
+import { listMyItems, offlineItem, restoreItem } from '@/api/item'
 import {
   ITEM_STATUS_TEXT,
   TYPE_TEXT,
@@ -117,19 +109,6 @@ async function load() {
     /* 已提示 */
   } finally {
     loading.value = false
-  }
-}
-
-async function onReturned(row) {
-  await ElMessageBox.confirm('确认该物品已归还？标记后不可再编辑。', '提示', {
-    type: 'warning',
-  }).catch(() => Promise.reject(new Error('cancel')))
-  try {
-    await markReturned(row.id)
-    ElMessage.success('已标记归还')
-    load()
-  } catch {
-    /* 已提示 */
   }
 }
 

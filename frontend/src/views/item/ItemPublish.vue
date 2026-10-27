@@ -163,7 +163,10 @@ function syncImages() {
 
 async function onSubmit() {
   const valid = await formRef.value.validate().catch(() => false)
-  if (!valid) return
+  if (!valid) {
+    ElMessage.warning('请检查标红的必填项')
+    return
+  }
 
   syncImages()
   submitting.value = true
