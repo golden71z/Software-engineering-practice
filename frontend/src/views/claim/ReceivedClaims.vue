@@ -1,7 +1,7 @@
 <template>
   <div class="page-container">
     <div class="head">
-      <h2 class="section-title">收到的认领申请</h2>
+      <h2 class="section-title">收到的认领申请 / 拾获线索</h2>
       <el-radio-group v-model="status" @change="load">
         <el-radio-button :value="''">全部</el-radio-button>
         <el-radio-button value="pending">待处理</el-radio-button>
@@ -14,7 +14,7 @@
       type="warning"
       :closable="false"
       show-icon
-      title="通过某条申请后，该物品会自动标记为「已归还」，同物品的其他申请将被自动拒绝。"
+      title="处理认领或拾获线索后，物品会标记为「已归还」，同物品的其他待处理信息会被自动拒绝。"
       class="tip"
     />
 
@@ -35,7 +35,7 @@
         </div>
 
         <div class="proof">
-          <span class="label">认领说明</span>
+          <span class="label">{{ row.item_type === 'found' ? '认领说明' : '拾获说明' }}</span>
           <p>{{ row.proof }}</p>
         </div>
 
@@ -47,12 +47,12 @@
         </div>
 
         <div v-if="row.status === 'pending'" class="row-actions">
-          <el-button type="success" size="small" @click="onApprove(row)">通过</el-button>
+          <el-button type="success" size="small" @click="onApprove(row)">{{ row.item_type === 'found' ? '通过认领' : '确认交接' }}</el-button>
           <el-button type="danger" size="small" plain @click="onReject(row)">拒绝</el-button>
         </div>
       </div>
 
-      <el-empty v-if="!loading && !list.length" description="还没有收到认领申请" />
+      <el-empty v-if="!loading && !list.length" description="还没有收到认领申请或拾获线索" />
     </el-card>
   </div>
 </template>
@@ -87,7 +87,7 @@ async function load() {
 async function onApprove(row) {
   const { value } = await ElMessageBox.prompt(
     '通过后该物品将标记为已归还，其他申请会被自动拒绝。可填写处理说明：',
-    '确认通过认领',
+    row.item_type === 'found' ? '确认通过认领' : '确认物品已交还',
     {
       confirmButtonText: '确认通过',
       cancelButtonText: '取消',

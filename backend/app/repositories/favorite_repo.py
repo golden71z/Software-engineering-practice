@@ -20,6 +20,11 @@ def remove(db: Session, user_id: int, item_id: int) -> None:
     db.commit()
 
 
+def remove_pending_check(db: Session, user_id: int, item_id: int) -> None:
+    """Remove an item from the user's pending verification list in the current transaction."""
+    db.execute(delete(Favorite).where(Favorite.user_id == user_id, Favorite.item_id == item_id))
+
+
 def list_for_user(db: Session, user_id: int, page: int, size: int):
     base = select(Item).join(Favorite, Favorite.item_id == Item.id).where(
         Favorite.user_id == user_id, Item.status != "offline"

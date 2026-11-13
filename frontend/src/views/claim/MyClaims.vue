@@ -1,6 +1,6 @@
 <template>
   <div class="page-container">
-    <h2 class="section-title">我的认领申请</h2>
+    <h2 class="section-title">我的认领 / 拾获反馈</h2>
 
     <el-card shadow="never" class="card" v-loading="loading">
       <el-table :data="list" stripe>
@@ -14,7 +14,9 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="proof" label="认领说明" min-width="240" show-overflow-tooltip />
+        <el-table-column label="说明" min-width="240" show-overflow-tooltip>
+          <template #default="{ row }">{{ row.proof }}</template>
+        </el-table-column>
         <el-table-column label="状态" width="110">
           <template #default="{ row }">
             <el-tag size="small" :type="claimStatusType(row.status)">
@@ -43,8 +45,8 @@
         </el-table-column>
       </el-table>
 
-      <el-empty v-if="!loading && !list.length" description="还没有提交过认领申请">
-        <el-button type="primary" @click="router.push('/items')">去看看有哪些失物</el-button>
+      <el-empty v-if="!loading && !list.length" description="还没有提交过认领申请或拾获线索">
+        <el-button type="primary" @click="router.push('/items')">去看看招领和失物信息</el-button>
       </el-empty>
     </el-card>
   </div>
