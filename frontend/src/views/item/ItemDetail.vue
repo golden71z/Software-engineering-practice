@@ -186,7 +186,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Edit, Picture } from '@element-plus/icons-vue'
 import { addFavorite, getFavorite, getItem, offlineItem, removeFavorite, restoreItem } from '@/api/item'
-import { approveClaim, listReceivedClaims, rejectClaim } from '@/api/claim'
+import { applyClaim, approveClaim, listReceivedClaims, rejectClaim } from '@/api/claim'
 import { useUserStore } from '@/stores/user'
 import {
   CLAIM_STATUS_TEXT,
