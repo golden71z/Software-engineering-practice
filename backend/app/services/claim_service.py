@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from app.core.exceptions import BusinessError, ForbiddenError, NotFoundError
 from app.models.claim import Claim
 from app.models.user import User
-from app.repositories import claim_repo, item_repo
+from app.repositories import claim_repo, favorite_repo, item_repo
 from app.schemas.claim import ClaimCreate
 
 
@@ -36,6 +36,8 @@ def apply(db: Session, applicant: User, payload: ClaimCreate) -> Claim:
         contact=payload.contact or applicant.phone,
         status="pending",
     )
+    # Successful claim submission means this item is no longer waiting to be checked.
+    favorite_repo.remove_pending_check(db, applicant.id, item.id)
     db.commit()
     db.refresh(claim)
     return claim

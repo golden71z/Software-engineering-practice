@@ -80,13 +80,16 @@
               </template>
 
               <template v-else>
+                <el-button v-if="isFoundItem" :type="favorited ? 'warning' : 'default'" plain @click="toggleFavorite">
+                  {{ favorited ? '已加入待核实' : '疑似是我的' }}
+                </el-button>
                 <el-button
                   type="primary"
                   size="large"
                   :disabled="item.status !== 'published'"
                   @click="openClaim"
                 >
-                  我要认领
+                  {{ isFoundItem ? '我要认领' : '我捡到了' }}
                 </el-button>
                 <span v-if="item.status !== 'published'" class="text-sub">
                   该信息当前不接受认领
@@ -106,7 +109,7 @@
       >
         <template #header>
           <div class="claims-head">
-            <span class="claims-title">收到的认领申请</span>
+            <span class="claims-title">{{ isFoundItem ? '收到的认领申请' : '收到的拾获线索' }}</span>
             <span class="text-sub">
               通过后物品将标记为已归还，其他待处理申请会被自动拒绝
             </span>
@@ -121,7 +124,7 @@
             </el-tag>
           </div>
           <div class="claim-proof">
-            <span class="label">认领说明</span>
+            <span class="label">{{ isFoundItem ? '认领说明' : '拾获说明' }}</span>
             <p>{{ row.proof }}</p>
           </div>
           <div class="claim-meta">
@@ -137,29 +140,29 @@
 
         <el-empty
           v-if="!claimsLoading && !claims.length"
-          description="还没有收到认领申请"
+              :description="isFoundItem ? '还没有收到认领申请' : '还没有收到拾获线索'"
           :image-size="72"
         />
       </el-card>
 
       <!-- 认领弹窗 -->
-      <el-dialog v-model="claimVisible" title="提交认领申请" width="520px">
+      <el-dialog v-model="claimVisible" :title="isFoundItem ? '提交认领申请' : '提交拾获线索'" width="520px">
         <el-alert
           type="info"
           :closable="false"
           show-icon
-          title="请尽量描述只有失主才知道的细节，便于发布者核对"
+          :title="isFoundItem ? '请描述只有失主才知道的细节，便于发布者核对' : '请说明拾获时间、地点和物品特征，方便失主联系你'"
           class="claim-tip"
         />
         <el-form ref="claimFormRef" :model="claimForm" :rules="claimRules" label-position="top">
-          <el-form-item label="认领说明" prop="proof">
+          <el-form-item :label="isFoundItem ? '认领说明' : '拾获说明'" prop="proof">
             <el-input
               v-model="claimForm.proof"
               type="textarea"
               :rows="4"
               maxlength="500"
               show-word-limit
-              placeholder="例如：卡套颜色、卡号后四位、物品内含物、特殊痕迹等"
+              :placeholder="isFoundItem ? '例如：卡套颜色、卡号后四位、物品内含物、特殊痕迹等' : '例如：在哪里、何时捡到，物品外观和当前保管位置'"
             />
           </el-form-item>
           <el-form-item label="联系方式">
@@ -168,7 +171,7 @@
         </el-form>
         <template #footer>
           <el-button @click="claimVisible = false">取消</el-button>
-          <el-button type="primary" :loading="claiming" @click="submitClaim">提交申请</el-button>
+          <el-button type="primary" :loading="claiming" @click="submitClaim">{{ isFoundItem ? '提交认领申请' : '提交拾获线索' }}</el-button>
         </template>
       </el-dialog>
     </template>
@@ -182,8 +185,8 @@ import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Edit, Picture } from '@element-plus/icons-vue'
-import { getItem, offlineItem, restoreItem } from '@/api/item'
-import { approveClaim, listReceivedClaims, rejectClaim } from '@/api/claim'
+import { addFavorite, getFavorite, getItem, offlineItem, removeFavorite, restoreItem } from '@/api/item'
+import { applyClaim, approveClaim, listReceivedClaims, rejectClaim } from '@/api/claim'
 import { useUserStore } from '@/stores/user'
 import {
   CLAIM_STATUS_TEXT,
@@ -201,6 +204,7 @@ const user = useUserStore()
 
 const loading = ref(false)
 const item = ref(null)
+const favorited = ref(false)
 const claimVisible = ref(false)
 const claiming = ref(false)
 const claimFormRef = ref()
@@ -216,6 +220,7 @@ const claimRules = {
 const isOwner = computed(
   () => user.isLogin && item.value && item.value.publisher_id === user.profile?.id
 )
+const isFoundItem = computed(() => item.value?.type === 'found')
 
 const claims = ref([])
 const claimsLoading = ref(false)
@@ -239,6 +244,7 @@ async function load() {
   loading.value = true
   try {
     item.value = await getItem(route.params.id)
+    favorited.value = user.isLogin ? await getFavorite(route.params.id) : false
     await loadClaims()
   } catch {
     item.value = null
@@ -247,9 +253,20 @@ async function load() {
   }
 }
 
+async function toggleFavorite() {
+  if (!user.isLogin) {
+    router.push({ path: '/login', query: { redirect: route.fullPath } })
+    return
+  }
+  try {
+    if (favorited.value) { await removeFavorite(item.value.id); favorited.value = false; ElMessage.success('已移出待核实列表') }
+    else { await addFavorite(item.value.id); favorited.value = true; ElMessage.success('已加入待核实列表') }
+  } catch { /* 已提示 */ }
+}
+
 function openClaim() {
   if (!user.isLogin) {
-    ElMessageBox.confirm('认领需要先登录，是否前往登录？', '提示', {
+    ElMessageBox.confirm('提交信息需要先登录，是否前往登录？', '提示', {
       confirmButtonText: '去登录',
       cancelButtonText: '取消',
       type: 'warning',
@@ -268,7 +285,7 @@ function openClaim() {
 async function submitClaim() {
   const valid = await claimFormRef.value.validate().catch(() => false)
   if (!valid) {
-    ElMessage.warning('认领说明至少 5 个字，请检查标红的输入项')
+    ElMessage.warning(`${isFoundItem.value ? '认领' : '拾获'}说明至少 5 个字，请检查标红的输入项`)
     return
   }
 
@@ -279,7 +296,7 @@ async function submitClaim() {
       proof: claimForm.proof,
       contact: claimForm.contact || null,
     })
-    ElMessage.success('申请已提交，等待发布者处理')
+    ElMessage.success(isFoundItem.value ? '认领申请已提交，等待发布者处理' : '拾获线索已提交，等待失主联系')
     claimVisible.value = false
   } catch {
     // 拦截器已提示
@@ -312,7 +329,7 @@ async function onRestore() {
 async function onApproveClaim(row) {
   const { value } = await ElMessageBox.prompt(
     '通过后该物品将标记为已归还，其他申请会被自动拒绝。可填写处理说明：',
-    '确认通过认领',
+            isFoundItem.value ? '确认通过认领' : '确认物品已交还',
     {
       confirmButtonText: '确认通过',
       cancelButtonText: '取消',

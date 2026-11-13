@@ -9,11 +9,41 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_current_user, get_optional_user
 from app.db.session import get_db
 from app.models.user import User
+from app.models.item import Item
+from app.repositories import favorite_repo
+from app.core.exceptions import NotFoundError
 from app.schemas.common import ApiResponse, PageOut
 from app.schemas.item import ItemCreate, ItemDetailOut, ItemOut, ItemUpdate
 from app.services import item_service
 
 router = APIRouter(tags=["物品"])
+
+
+@router.get("/favorites", response_model=ApiResponse[PageOut[ItemOut]], summary="我的收藏")
+def list_favorites(page: int = Query(1, ge=1), size: int = Query(12, ge=1, le=100),
+                   db: Session = Depends(get_db), current: User = Depends(get_current_user)):
+    rows, total = favorite_repo.list_for_user(db, current.id, page, size)
+    return ApiResponse[PageOut[ItemOut]](data=PageOut[ItemOut](items=[ItemOut.from_model(i) for i in rows], total=total, page=page, size=size))
+
+
+@router.put("/{item_id}/favorite", response_model=ApiResponse[bool], summary="收藏物品")
+def add_favorite(item_id: int, db: Session = Depends(get_db), current: User = Depends(get_current_user)):
+    item = db.get(Item, item_id)
+    if item is None or item.status == "offline":
+        raise NotFoundError("物品不存在或已下架")
+    favorite_repo.add(db, current.id, item_id)
+    return ApiResponse[bool](message="已收藏", data=True)
+
+
+@router.get("/{item_id}/favorite", response_model=ApiResponse[bool], summary="查询收藏状态")
+def get_favorite(item_id: int, db: Session = Depends(get_db), current: User = Depends(get_current_user)):
+    return ApiResponse[bool](data=favorite_repo.contains(db, current.id, item_id))
+
+
+@router.delete("/{item_id}/favorite", response_model=ApiResponse[bool], summary="取消收藏")
+def remove_favorite(item_id: int, db: Session = Depends(get_db), current: User = Depends(get_current_user)):
+    favorite_repo.remove(db, current.id, item_id)
+    return ApiResponse[bool](message="已取消收藏", data=False)
 
 
 @router.get("", response_model=ApiResponse[PageOut[ItemOut]], summary="物品列表（公开）")

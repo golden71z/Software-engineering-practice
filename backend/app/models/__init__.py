@@ -8,5 +8,6 @@ from app.models.user import User
 from app.models.item import Item
 from app.models.claim import Claim
 from app.models.notice import Notice
+from app.models.favorite import Favorite
 
-__all__ = ["User", "Category", "Item", "Claim", "Notice"]
+__all__ = ["User", "Category", "Item", "Claim", "Notice", "Favorite"]

@@ -52,6 +52,7 @@ const routes = [
         component: () => import('@/views/item/MyItems.vue'),
         meta: { title: '我的发布', requiresAuth: true },
       },
+      { path: 'my/favorites', name: 'my-favorites', component: () => import('@/views/item/MyFavorites.vue'), meta: { title: '疑似是我的', requiresAuth: true } },
       {
         path: 'my/claims',
         name: 'my-claims',
