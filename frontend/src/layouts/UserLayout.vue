@@ -33,6 +33,7 @@
               <template #dropdown>
                 <el-dropdown-menu>
                   <el-dropdown-item command="my-items">我的发布</el-dropdown-item>
+                  <el-dropdown-item command="favorites">我的收藏</el-dropdown-item>
                   <el-dropdown-item command="my-claims">我的认领</el-dropdown-item>
                   <el-dropdown-item command="received">
                     收到的申请
@@ -113,6 +114,7 @@ function onCommand(command) {
   }
   const map = {
     'my-items': '/my/items',
+    favorites: '/my/favorites',
     'my-claims': '/my/claims',
     received: '/my/received',
     admin: '/admin',

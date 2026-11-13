@@ -5,6 +5,10 @@ export const listItems = (params) => request.get('/api/v1/items', { params })
 
 /** 我发布的。params: { status, page, size } */
 export const listMyItems = (params) => request.get('/api/v1/items/mine', { params })
+export const listFavorites = (params) => request.get('/api/v1/items/favorites', { params })
+export const addFavorite = (id) => request.put(`/api/v1/items/${id}/favorite`)
+export const getFavorite = (id) => request.get(`/api/v1/items/${id}/favorite`)
+export const removeFavorite = (id) => request.delete(`/api/v1/items/${id}/favorite`)
 
 export const getItem = (id) => request.get(`/api/v1/items/${id}`)
 

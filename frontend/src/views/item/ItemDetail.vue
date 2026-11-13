@@ -80,6 +80,9 @@
               </template>
 
               <template v-else>
+                <el-button :type="favorited ? 'warning' : 'default'" plain @click="toggleFavorite">
+                  {{ favorited ? '已收藏' : '收藏' }}
+                </el-button>
                 <el-button
                   type="primary"
                   size="large"
@@ -182,7 +185,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Edit, Picture } from '@element-plus/icons-vue'
-import { getItem, offlineItem, restoreItem } from '@/api/item'
+import { addFavorite, getFavorite, getItem, offlineItem, removeFavorite, restoreItem } from '@/api/item'
 import { approveClaim, listReceivedClaims, rejectClaim } from '@/api/claim'
 import { useUserStore } from '@/stores/user'
 import {
@@ -201,6 +204,7 @@ const user = useUserStore()
 
 const loading = ref(false)
 const item = ref(null)
+const favorited = ref(false)
 const claimVisible = ref(false)
 const claiming = ref(false)
 const claimFormRef = ref()
@@ -239,12 +243,24 @@ async function load() {
   loading.value = true
   try {
     item.value = await getItem(route.params.id)
+    favorited.value = user.isLogin ? await getFavorite(route.params.id) : false
     await loadClaims()
   } catch {
     item.value = null
   } finally {
     loading.value = false
   }
+}
+
+async function toggleFavorite() {
+  if (!user.isLogin) {
+    router.push({ path: '/login', query: { redirect: route.fullPath } })
+    return
+  }
+  try {
+    if (favorited.value) { await removeFavorite(item.value.id); favorited.value = false; ElMessage.success('已取消收藏') }
+    else { await addFavorite(item.value.id); favorited.value = true; ElMessage.success('已收藏') }
+  } catch { /* 已提示 */ }
 }
 
 function openClaim() {
