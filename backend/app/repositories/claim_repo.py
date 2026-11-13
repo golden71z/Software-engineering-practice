@@ -38,14 +38,19 @@ def list_by_applicant(db: Session, applicant_id: int) -> list[Claim]:
 
 
 def list_by_owner(
-    db: Session, owner_id: int, status: str | None = None
+    db: Session,
+    owner_id: int,
+    status: str | None = None,
+    item_id: int | None = None,
 ) -> list[Claim]:
-    """物品发布者查看自己收到的申请。"""
+    """物品发布者查看自己收到的申请，可按状态、按物品过滤。"""
     stmt = select(Claim).join(Item, Claim.item_id == Item.id).where(
         Item.publisher_id == owner_id
     )
     if status:
         stmt = stmt.where(Claim.status == status)
+    if item_id:
+        stmt = stmt.where(Claim.item_id == item_id)
     stmt = stmt.order_by(Claim.created_at.desc())
     return list(db.scalars(stmt).all())
 

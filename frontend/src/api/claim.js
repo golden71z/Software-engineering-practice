@@ -4,8 +4,13 @@ export const applyClaim = (data) => request.post('/api/v1/claims', data)
 
 export const listMyClaims = () => request.get('/api/v1/claims/mine')
 
-export const listReceivedClaims = (status) =>
-  request.get('/api/v1/claims/received', { params: status ? { status } : {} })
+export const listReceivedClaims = (status, itemId) =>
+  request.get('/api/v1/claims/received', {
+    params: {
+      ...(status ? { status } : {}),
+      ...(itemId ? { item_id: itemId } : {}),
+    },
+  })
 
 export const getPendingCount = () => request.get('/api/v1/claims/pending-count')
 

@@ -73,13 +73,6 @@
                 <el-button :icon="Edit" @click="router.push(`/publish?id=${item.id}`)">
                   编辑
                 </el-button>
-                <el-button
-                  v-if="item.status === 'published'"
-                  type="success"
-                  @click="onMarkReturned"
-                >
-                  标记已归还
-                </el-button>
                 <el-button v-if="item.status !== 'offline'" type="warning" plain @click="onOffline">
                   下架
                 </el-button>
@@ -102,6 +95,51 @@
             </div>
           </div>
         </div>
+      </el-card>
+
+      <!-- 发布者视角：该物品收到的认领申请 -->
+      <el-card
+        v-if="isOwner"
+        shadow="never"
+        class="detail-card claims-card"
+        v-loading="claimsLoading"
+      >
+        <template #header>
+          <div class="claims-head">
+            <span class="claims-title">收到的认领申请</span>
+            <span class="text-sub">
+              通过后物品将标记为已归还，其他待处理申请会被自动拒绝
+            </span>
+          </div>
+        </template>
+
+        <div v-for="row in claims" :key="row.id" class="claim-item">
+          <div class="claim-top">
+            <strong>{{ row.applicant_name }}</strong>
+            <el-tag size="small" :type="claimStatusType(row.status)">
+              {{ CLAIM_STATUS_TEXT[row.status] }}
+            </el-tag>
+          </div>
+          <div class="claim-proof">
+            <span class="label">认领说明</span>
+            <p>{{ row.proof }}</p>
+          </div>
+          <div class="claim-meta">
+            <span>联系方式：{{ row.contact || '未填写' }}</span>
+            <span>申请时间：{{ formatTime(row.created_at) }}</span>
+            <span v-if="row.handle_comment">处理意见：{{ row.handle_comment }}</span>
+          </div>
+          <div v-if="row.status === 'pending'" class="claim-actions">
+            <el-button type="success" size="small" @click="onApproveClaim(row)">通过</el-button>
+            <el-button type="danger" size="small" plain @click="onRejectClaim(row)">拒绝</el-button>
+          </div>
+        </div>
+
+        <el-empty
+          v-if="!claimsLoading && !claims.length"
+          description="还没有收到认领申请"
+          :image-size="72"
+        />
       </el-card>
 
       <!-- 认领弹窗 -->
@@ -144,12 +182,14 @@ import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Edit, Picture } from '@element-plus/icons-vue'
-import { getItem, markReturned, offlineItem, restoreItem } from '@/api/item'
-import { applyClaim } from '@/api/claim'
+import { getItem, offlineItem, restoreItem } from '@/api/item'
+import { approveClaim, listReceivedClaims, rejectClaim } from '@/api/claim'
 import { useUserStore } from '@/stores/user'
 import {
+  CLAIM_STATUS_TEXT,
   ITEM_STATUS_TEXT,
   TYPE_TEXT,
+  claimStatusType,
   formatTime,
   itemStatusType,
   typeTagType,
@@ -177,10 +217,29 @@ const isOwner = computed(
   () => user.isLogin && item.value && item.value.publisher_id === user.profile?.id
 )
 
+const claims = ref([])
+const claimsLoading = ref(false)
+
+async function loadClaims() {
+  if (!isOwner.value) {
+    claims.value = []
+    return
+  }
+  claimsLoading.value = true
+  try {
+    claims.value = (await listReceivedClaims(undefined, item.value.id)) || []
+  } catch {
+    /* 已提示 */
+  } finally {
+    claimsLoading.value = false
+  }
+}
+
 async function load() {
   loading.value = true
   try {
     item.value = await getItem(route.params.id)
+    await loadClaims()
   } catch {
     item.value = null
   } finally {
@@ -208,7 +267,10 @@ function openClaim() {
 
 async function submitClaim() {
   const valid = await claimFormRef.value.validate().catch(() => false)
-  if (!valid) return
+  if (!valid) {
+    ElMessage.warning('认领说明至少 5 个字，请检查标红的输入项')
+    return
+  }
 
   claiming.value = true
   try {
@@ -223,18 +285,6 @@ async function submitClaim() {
     // 拦截器已提示
   } finally {
     claiming.value = false
-  }
-}
-
-async function onMarkReturned() {
-  await ElMessageBox.confirm('确认这件物品已经归还？标记后不可再修改。', '提示', {
-    type: 'warning',
-  }).catch(() => Promise.reject(new Error('cancel')))
-  try {
-    item.value = await markReturned(item.value.id)
-    ElMessage.success('已标记为归还')
-  } catch {
-    /* 已提示 */
   }
 }
 
@@ -254,6 +304,45 @@ async function onRestore() {
   try {
     item.value = await restoreItem(item.value.id)
     ElMessage.success('已重新上架')
+  } catch {
+    /* 已提示 */
+  }
+}
+
+async function onApproveClaim(row) {
+  const { value } = await ElMessageBox.prompt(
+    '通过后该物品将标记为已归还，其他申请会被自动拒绝。可填写处理说明：',
+    '确认通过认领',
+    {
+      confirmButtonText: '确认通过',
+      cancelButtonText: '取消',
+      inputPlaceholder: '例如：已当面核对并交接',
+      inputValue: '信息核对无误，已当面交接',
+    }
+  ).catch(() => ({ value: null }))
+  if (value === null) return
+
+  try {
+    await approveClaim(row.id, value || null)
+    ElMessage.success('已通过，物品标记为已归还')
+    await Promise.all([loadClaims(), load()])
+  } catch {
+    /* 已提示 */
+  }
+}
+
+async function onRejectClaim(row) {
+  const { value } = await ElMessageBox.prompt('请填写拒绝原因：', '拒绝认领', {
+    confirmButtonText: '确认拒绝',
+    cancelButtonText: '取消',
+    inputPlaceholder: '例如：描述与物品实际特征不符',
+  }).catch(() => ({ value: null }))
+  if (value === null) return
+
+  try {
+    await rejectClaim(row.id, value || null)
+    ElMessage.success('已拒绝')
+    await loadClaims()
   } catch {
     /* 已提示 */
   }
@@ -350,6 +439,76 @@ h1 {
 
 .claim-tip {
   margin-bottom: 16px;
+}
+
+.claims-card {
+  margin-top: 20px;
+}
+
+.claims-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.claims-title {
+  font-weight: 600;
+}
+
+.claims-head .text-sub {
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.claim-item {
+  padding: 14px 4px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.claim-item:last-child {
+  border-bottom: none;
+}
+
+.claim-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.claim-proof {
+  background: #f9fafb;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+}
+
+.claim-proof .label {
+  font-size: 12px;
+  color: var(--text-sub);
+}
+
+.claim-proof p {
+  margin: 4px 0 0;
+  font-size: 13px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+
+.claim-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  font-size: 12px;
+  color: var(--text-sub);
+}
+
+.claim-actions {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
 }
 
 @media (max-width: 900px) {

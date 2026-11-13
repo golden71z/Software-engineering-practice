@@ -36,10 +36,11 @@ def list_my_claims(
 )
 def list_received(
     status: str | None = Query(None, description="pending / approved / rejected / cancelled"),
+    item_id: int | None = Query(None, description="按物品过滤，物品详情页使用"),
     db: Session = Depends(get_db),
     current: User = Depends(get_current_user),
 ) -> ApiResponse[list[ClaimOut]]:
-    claims = claim_service.list_received(db, current, status)
+    claims = claim_service.list_received(db, current, status, item_id)
     return ApiResponse[list[ClaimOut]](data=[ClaimOut.from_model(c) for c in claims])
 
 

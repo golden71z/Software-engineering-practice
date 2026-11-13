@@ -80,7 +80,10 @@ const rules = {
 
 async function onSubmit() {
   const valid = await formRef.value.validate().catch(() => false)
-  if (!valid) return
+  if (!valid) {
+    ElMessage.warning('请检查标红的输入项')
+    return
+  }
 
   loading.value = true
   try {

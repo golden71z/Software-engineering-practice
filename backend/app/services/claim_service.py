@@ -45,8 +45,15 @@ def list_mine(db: Session, applicant: User) -> list[Claim]:
     return claim_repo.list_by_applicant(db, applicant.id)
 
 
-def list_received(db: Session, owner: User, status: str | None) -> list[Claim]:
-    return claim_repo.list_by_owner(db, owner.id, status=status or None)
+def list_received(
+    db: Session,
+    owner: User,
+    status: str | None,
+    item_id: int | None = None,
+) -> list[Claim]:
+    return claim_repo.list_by_owner(
+        db, owner.id, status=status or None, item_id=item_id
+    )
 
 
 def count_pending(db: Session, owner: User) -> int:

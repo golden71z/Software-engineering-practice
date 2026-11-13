@@ -15,5 +15,3 @@ export const updateItem = (id, data) => request.put(`/api/v1/items/${id}`, data)
 export const offlineItem = (id) => request.post(`/api/v1/items/${id}/offline`)
 
 export const restoreItem = (id) => request.post(`/api/v1/items/${id}/restore`)
-
-export const markReturned = (id) => request.post(`/api/v1/items/${id}/returned`)

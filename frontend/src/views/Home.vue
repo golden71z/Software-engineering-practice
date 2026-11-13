@@ -51,24 +51,6 @@
       </div>
 
       <el-empty v-if="!loading && !latest.length" description="还没有发布任何信息" />
-
-      <!-- 分栏入口 -->
-      <div class="entries">
-        <el-card shadow="never" class="entry" @click="goType('lost')">
-          <div class="entry-icon lost"><el-icon :size="24"><Warning /></el-icon></div>
-          <div>
-            <div class="entry-title">失物信息</div>
-            <div class="text-sub">同学们丢失的物品都在这里</div>
-          </div>
-        </el-card>
-        <el-card shadow="never" class="entry" @click="goType('found')">
-          <div class="entry-icon found"><el-icon :size="24"><CircleCheck /></el-icon></div>
-          <div>
-            <div class="entry-title">招领信息</div>
-            <div class="text-sub">看看有没有你丢的东西</div>
-          </div>
-        </el-card>
-      </div>
     </div>
   </div>
 </template>
@@ -176,47 +158,5 @@ onMounted(async () => {
   grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
   gap: 16px;
   min-height: 120px;
-}
-
-.entries {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  margin-top: 32px;
-}
-
-.entry {
-  cursor: pointer;
-  border-radius: var(--radius);
-}
-
-.entry :deep(.el-card__body) {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.entry-icon {
-  width: 46px;
-  height: 46px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.entry-icon.lost {
-  background: #fef2f2;
-  color: #dc2626;
-}
-
-.entry-icon.found {
-  background: #ecfdf5;
-  color: #059669;
-}
-
-.entry-title {
-  font-weight: 600;
-  margin-bottom: 2px;
 }
 </style>
