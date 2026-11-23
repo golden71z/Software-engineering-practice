@@ -19,10 +19,10 @@
           </el-input>
         </div>
         <div class="quick">
-          <el-button size="large" type="danger" plain @click="goType('found')">
+          <el-button size="large" type="success" plain @click="goType('found')">
             <el-icon><Warning /></el-icon> 我丢了东西 · 查招领
           </el-button>
-          <el-button size="large" type="success" plain @click="goType('lost')">
+          <el-button size="large" type="danger" plain @click="goType('lost')">
             <el-icon><CircleCheck /></el-icon> 我捡到东西 · 查失物
           </el-button>
         </div>

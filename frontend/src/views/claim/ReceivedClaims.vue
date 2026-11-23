@@ -10,6 +10,29 @@
       </el-radio-group>
     </div>
 
+    <div class="item-filter">
+      <span>发布条目</span>
+      <el-select
+        v-model="itemId"
+        placeholder="全部发布条目"
+        clearable
+        filterable
+        :loading="itemsLoading"
+        class="item-select"
+        aria-label="按发布条目筛选申请"
+        @change="load"
+        @visible-change="onFilterOpen"
+      >
+        <el-option label="全部发布条目" :value="''" />
+        <el-option
+          v-for="item in myItems"
+          :key="item.id"
+          :label="`[${TYPE_TEXT[item.type]}] ${item.title}（#${item.id}）`"
+          :value="item.id"
+        />
+      </el-select>
+    </div>
+
     <el-alert
       type="warning"
       :closable="false"
@@ -52,7 +75,7 @@
         </div>
       </div>
 
-      <el-empty v-if="!loading && !list.length" description="还没有收到认领申请或拾获线索" />
+      <el-empty v-if="!loading && !list.length" :description="itemId || status ? '当前筛选条件下没有申请或拾获线索' : '还没有收到认领申请或拾获线索'" />
     </el-card>
   </div>
 </template>
@@ -61,6 +84,7 @@
 import { onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { approveClaim, listReceivedClaims, rejectClaim } from '@/api/claim'
+import { listMyItems } from '@/api/item'
 import {
   CLAIM_STATUS_TEXT,
   TYPE_TEXT,
@@ -72,15 +96,49 @@ import {
 const list = ref([])
 const status = ref('')
 const loading = ref(false)
+const itemId = ref('')
+const myItems = ref([])
+const itemsLoading = ref(false)
+const itemsLoaded = ref(false)
+let loadVersion = 0
+
+async function loadItems() {
+  if (itemsLoading.value) return
+  itemsLoading.value = true
+  try {
+    const items = []
+    let page = 1
+    // 包含展示中、已归还和已下架条目，分页取全，避免只能筛选前 100 条。
+    while (true) {
+      const data = await listMyItems({ page, size: 100 })
+      items.push(...(data.items || []))
+      if (!data.items?.length || items.length >= data.total) break
+      page += 1
+    }
+    myItems.value = items
+    itemsLoaded.value = true
+  } catch {
+    /* 已提示，再次打开下拉栏时重试 */
+  } finally {
+    itemsLoading.value = false
+  }
+}
+
+function onFilterOpen(open) {
+  if (open && !itemsLoaded.value) loadItems()
+}
 
 async function load() {
+  const version = ++loadVersion
   loading.value = true
+  list.value = []
   try {
-    list.value = (await listReceivedClaims(status.value || undefined)) || []
+    const rows = await listReceivedClaims(status.value || undefined, itemId.value || undefined)
+    if (version === loadVersion) list.value = rows || []
   } catch {
     /* 已提示 */
   } finally {
-    loading.value = false
+    if (version === loadVersion) loading.value = false
   }
 }
 
@@ -123,7 +181,10 @@ async function onReject(row) {
   }
 }
 
-onMounted(load)
+onMounted(() => {
+  loadItems()
+  load()
+})
 </script>
 
 <style scoped>
@@ -138,6 +199,20 @@ onMounted(load)
 .tip {
   margin-bottom: 16px;
   border-radius: var(--radius);
+}
+
+.item-filter {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 4px 0 16px;
+  font-size: 14px;
+  color: var(--text-sub);
+}
+
+.item-select {
+  width: 360px;
+  max-width: calc(100% - 80px);
 }
 
 .card {

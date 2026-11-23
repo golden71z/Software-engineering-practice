@@ -63,6 +63,21 @@ def set_user_status(
     )
 
 
+@router.post(
+    "/users/{user_id}/reset-password",
+    response_model=ApiResponse[UserOut],
+    summary="重置用户密码为 usr123",
+)
+def reset_user_password(
+    user_id: int,
+    db: Session = Depends(get_db),
+) -> ApiResponse[UserOut]:
+    user = admin_service.reset_user_password(db, user_id)
+    return ApiResponse[UserOut](
+        message="密码已重置为 usr123", data=UserOut.model_validate(user)
+    )
+
+
 @router.get("/items", response_model=ApiResponse[PageOut[ItemOut]], summary="全部信息（含已下架）")
 def list_all_items(
     type_: str | None = Query(None, alias="type"),

@@ -53,6 +53,7 @@
               下架
             </el-button>
             <el-button v-else link type="primary" @click="onRestore(row)">上架</el-button>
+            <el-button link type="danger" :loading="deletingIds.has(row.id)" @click="onDelete(row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -74,11 +75,11 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
-import { listMyItems, offlineItem, restoreItem } from '@/api/item'
+import { deleteItem, listMyItems, offlineItem, restoreItem } from '@/api/item'
 import {
   ITEM_STATUS_TEXT,
   TYPE_TEXT,
@@ -94,6 +95,7 @@ const total = ref(0)
 const page = ref(1)
 const size = ref(10)
 const loading = ref(false)
+const deletingIds = reactive(new Set())
 
 async function load() {
   loading.value = true
@@ -132,6 +134,27 @@ async function onRestore(row) {
     load()
   } catch {
     /* 已提示 */
+  }
+}
+
+async function onDelete(row) {
+  if (deletingIds.has(row.id)) return
+  deletingIds.add(row.id)
+  try {
+    const confirmed = await ElMessageBox.confirm(
+      `确认删除「${row.title}」？删除后无法恢复，相关认领申请、拾获线索和收藏记录也会删除。`,
+      '删除发布',
+      { type: 'warning', confirmButtonText: '确认删除', cancelButtonText: '取消' }
+    ).catch(() => false)
+    if (!confirmed) return
+    await deleteItem(row.id)
+    ElMessage.success('已删除')
+    if (list.value.length === 1 && page.value > 1) page.value -= 1
+    await load()
+  } catch {
+    /* 已提示 */
+  } finally {
+    deletingIds.delete(row.id)
   }
 }
 

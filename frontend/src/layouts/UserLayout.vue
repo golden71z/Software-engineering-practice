@@ -42,7 +42,9 @@
                   <el-dropdown-item v-if="user.isAdmin" command="admin" divided>
                     管理后台
                   </el-dropdown-item>
-                  <el-dropdown-item command="logout" divided>退出登录</el-dropdown-item>
+                  <el-dropdown-item command="edit-profile" divided>修改个人信息</el-dropdown-item>
+                  <el-dropdown-item command="change-password">修改密码</el-dropdown-item>
+                  <el-dropdown-item command="logout">退出登录</el-dropdown-item>
                 </el-dropdown-menu>
               </template>
             </el-dropdown>
@@ -60,6 +62,9 @@
       <router-view />
     </main>
 
+    <ChangePasswordDialog v-model="passwordVisible" />
+    <EditProfileDialog v-model="profileVisible" />
+
     <footer class="footer">
       校园失物招领管理系统 · 软件体系结构课程设计
     </footer>
@@ -73,11 +78,15 @@ import { ElMessageBox } from 'element-plus'
 import { ArrowDown, Plus, Search } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 import { getPendingCount } from '@/api/claim'
+import ChangePasswordDialog from '@/components/ChangePasswordDialog.vue'
+import EditProfileDialog from '@/components/EditProfileDialog.vue'
 
 const route = useRoute()
 const router = useRouter()
 const user = useUserStore()
 const pendingCount = ref(0)
+const passwordVisible = ref(false)
+const profileVisible = ref(false)
 
 async function loadPending() {
   if (!user.isLogin) {
@@ -106,6 +115,14 @@ function goPublish() {
 }
 
 function onCommand(command) {
+  if (command === 'edit-profile') {
+    profileVisible.value = true
+    return
+  }
+  if (command === 'change-password') {
+    passwordVisible.value = true
+    return
+  }
   if (command === 'logout') {
     user.logout()
     pendingCount.value = 0

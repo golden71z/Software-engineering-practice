@@ -5,13 +5,14 @@
 也不关心怎么序列化给前端（那是 schema 的事）。
 """
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 
 from app.core.config import settings
 from app.core.exceptions import BusinessError, UnauthorizedError
 from app.core.security import create_access_token, hash_password, verify_password
 from app.models.user import User
 from app.repositories import user_repo
-from app.schemas.user import UserCreate
+from app.schemas.user import PasswordChange, ProfileUpdate, UserCreate
 
 
 def register(db: Session, payload: UserCreate) -> User:
@@ -54,3 +55,29 @@ def login(db: Session, username: str, password: str) -> tuple[User, str]:
 def token_expires_in() -> int:
     """令牌有效期（秒），给前端展示用。"""
     return settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
+
+
+def change_password(db: Session, current: User, payload: PasswordChange) -> None:
+    """只允许当前用户校验原密码后修改自己的密码。"""
+    if not verify_password(payload.current_password, current.password_hash):
+        raise BusinessError("当前密码不正确")
+    if verify_password(payload.new_password, current.password_hash):
+        raise BusinessError("新密码不能与当前密码相同")
+    current.password_hash = hash_password(payload.new_password)
+    db.commit()
+
+
+def update_profile(db: Session, current: User, payload: ProfileUpdate) -> User:
+    existing = user_repo.get_by_email(db, payload.email)
+    if existing is not None and existing.id != current.id:
+        raise BusinessError("该邮箱已被其他账号使用")
+    current.email = str(payload.email)
+    current.real_name = payload.real_name
+    current.phone = payload.phone
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise BusinessError("该邮箱已被其他账号使用") from exc
+    db.refresh(current)
+    return current

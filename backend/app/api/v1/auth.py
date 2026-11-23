@@ -10,7 +10,7 @@ from app.api.deps import get_current_user
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.common import ApiResponse
-from app.schemas.user import TokenOut, UserCreate, UserLogin, UserOut
+from app.schemas.user import PasswordChange, ProfileUpdate, TokenOut, UserCreate, UserLogin, UserOut
 from app.services import user_service
 
 router = APIRouter(tags=["认证"])
@@ -37,3 +37,23 @@ def login(payload: UserLogin, db: Session = Depends(get_db)) -> ApiResponse[Toke
 @router.get("/me", response_model=ApiResponse[UserOut], summary="获取当前登录用户")
 def me(current: User = Depends(get_current_user)) -> ApiResponse[UserOut]:
     return ApiResponse[UserOut](data=UserOut.model_validate(current))
+
+
+@router.put("/me", response_model=ApiResponse[UserOut], summary="修改个人信息")
+def update_me(
+    payload: ProfileUpdate,
+    db: Session = Depends(get_db),
+    current: User = Depends(get_current_user),
+) -> ApiResponse[UserOut]:
+    user = user_service.update_profile(db, current, payload)
+    return ApiResponse[UserOut](message="个人信息修改成功", data=UserOut.model_validate(user))
+
+
+@router.post("/change-password", response_model=ApiResponse[bool], summary="修改个人密码")
+def change_password(
+    payload: PasswordChange,
+    db: Session = Depends(get_db),
+    current: User = Depends(get_current_user),
+) -> ApiResponse[bool]:
+    user_service.change_password(db, current, payload)
+    return ApiResponse[bool](message="密码修改成功", data=True)

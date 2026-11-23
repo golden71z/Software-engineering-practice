@@ -13,10 +13,20 @@ from app.models.item import Item
 from app.repositories import favorite_repo
 from app.core.exceptions import NotFoundError
 from app.schemas.common import ApiResponse, PageOut
-from app.schemas.item import ItemCreate, ItemDetailOut, ItemOut, ItemUpdate
-from app.services import item_service
+from app.schemas.item import ItemCreate, ItemDetailOut, ItemOut, ItemUpdate, SimilarFoundOut
+from app.services import item_service, recommendation_service
 
 router = APIRouter(tags=["物品"])
+
+
+@router.get("/{item_id}/similar-found", response_model=ApiResponse[list[SimilarFoundOut]], summary="相似招领（仅失物发布者）")
+def similar_found(
+    item_id: int,
+    db: Session = Depends(get_db),
+    current: User = Depends(get_current_user),
+) -> ApiResponse[list[SimilarFoundOut]]:
+    rows = recommendation_service.recommend_found(db, item_id, current)
+    return ApiResponse[list[SimilarFoundOut]](data=rows)
 
 
 @router.get("/favorites", response_model=ApiResponse[PageOut[ItemOut]], summary="我的收藏")
@@ -121,6 +131,16 @@ def create_item(
 ) -> ApiResponse[ItemOut]:
     item = item_service.create_item(db, current, payload)
     return ApiResponse[ItemOut](message="发布成功", data=ItemOut.from_model(item))
+
+
+@router.delete("/{item_id}", response_model=ApiResponse[bool], summary="删除自己的发布")
+def delete_item(
+    item_id: int,
+    db: Session = Depends(get_db),
+    current: User = Depends(get_current_user),
+) -> ApiResponse[bool]:
+    item_service.delete_item(db, current, item_id)
+    return ApiResponse[bool](message="已删除", data=True)
 
 
 @router.put("/{item_id}", response_model=ApiResponse[ItemOut], summary="编辑（本人）")

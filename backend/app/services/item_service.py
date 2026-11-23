@@ -105,6 +105,16 @@ def _get_own_item(db: Session, item_id: int, user: User) -> Item:
     return item
 
 
+def delete_item(db: Session, user: User, item_id: int) -> None:
+    item = _get_own_item(db, item_id, user)
+    try:
+        item_repo.delete_with_related(db, item)
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+
+
 def update_item(db: Session, user: User, item_id: int, payload: ItemUpdate) -> Item:
     item = _get_own_item(db, item_id, user)
     if item.status == "returned":

@@ -5,7 +5,7 @@
 """
 from datetime import datetime
 
-from sqlalchemy import Select, func, or_, select, text
+from sqlalchemy import Select, delete, func, or_, select, text
 from sqlalchemy.orm import Session
 
 from app.models.item import Item
@@ -70,11 +70,33 @@ def get_by_id(db: Session, item_id: int) -> Item | None:
     return db.get(Item, item_id)
 
 
+def recommendation_candidates(db: Session, lost: Item, earliest: datetime, latest: datetime) -> list[Item]:
+    """仅查询同分类、展示中、时间合理的其他用户招领信息。"""
+    return list(db.scalars(select(Item).where(
+        Item.type == "found",
+        Item.status == "published",
+        Item.category_id == lost.category_id,
+        Item.publisher_id != lost.publisher_id,
+        Item.event_time >= earliest,
+        Item.event_time <= latest,
+    )).all())
+
+
 def create(db: Session, **fields) -> Item:
     item = Item(**fields)
     db.add(item)
     db.flush()
     return item
+
+
+def delete_with_related(db: Session, item: Item) -> None:
+    """先清理关联记录，再删除物品；事务由业务层统一提交。"""
+    from app.models.claim import Claim
+    from app.models.favorite import Favorite
+
+    db.execute(delete(Claim).where(Claim.item_id == item.id))
+    db.execute(delete(Favorite).where(Favorite.item_id == item.id))
+    db.delete(item)
 
 
 def increase_view(db: Session, item: Item) -> None:

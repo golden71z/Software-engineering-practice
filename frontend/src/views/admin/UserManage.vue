@@ -45,7 +45,7 @@
       <el-table-column label="注册时间" width="160">
         <template #default="{ row }">{{ formatTime(row.created_at) }}</template>
       </el-table-column>
-      <el-table-column label="操作" width="110" fixed="right">
+      <el-table-column label="操作" width="190" fixed="right">
         <template #default="{ row }">
           <el-button
             v-if="row.role !== 'admin'"
@@ -55,7 +55,14 @@
           >
             {{ row.status === 1 ? '禁用' : '启用' }}
           </el-button>
-          <span v-else class="text-sub">—</span>
+          <el-button
+            link
+            type="primary"
+            :loading="resettingIds.has(row.id)"
+            @click="onResetPassword(row)"
+          >
+            重置密码
+          </el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -81,12 +88,13 @@
 import { onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search } from '@element-plus/icons-vue'
-import { listUsers, setUserStatus } from '@/api/admin'
+import { listUsers, resetUserPassword, setUserStatus } from '@/api/admin'
 import { formatTime } from '@/utils/format'
 
 const loading = ref(false)
 const list = ref([])
 const total = ref(0)
+const resettingIds = reactive(new Set())
 
 const query = reactive({ keyword: '', role: '', page: 1, size: 10 })
 
@@ -130,6 +138,25 @@ async function toggleStatus(row) {
     load()
   } catch {
     /* 已提示 */
+  }
+}
+
+async function onResetPassword(row) {
+  if (resettingIds.has(row.id)) return
+  resettingIds.add(row.id)
+  try {
+    const confirmed = await ElMessageBox.confirm(
+      `确认将「${row.username}」的密码重置为 usr123？重置后原密码将无法登录。`,
+      '重置密码',
+      { type: 'warning', confirmButtonText: '确认重置', cancelButtonText: '取消' }
+    ).catch(() => false)
+    if (!confirmed) return
+    await resetUserPassword(row.id)
+    ElMessage.success(`「${row.username}」的密码已重置为 usr123`)
+  } catch {
+    /* 已提示 */
+  } finally {
+    resettingIds.delete(row.id)
   }
 }
 

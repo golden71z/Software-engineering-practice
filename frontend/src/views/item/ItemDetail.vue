@@ -1,6 +1,6 @@
 <template>
   <div class="page-container" v-loading="loading">
-    <el-page-header content="信息详情" class="back" @back="router.back()" />
+    <el-page-header content="信息详情" class="back" @back="router.push('/items')" />
 
     <template v-if="item">
       <el-card shadow="never" class="detail-card">
@@ -100,6 +100,11 @@
         </div>
       </el-card>
 
+      <SimilarFound
+        v-if="isOwner && item.type === 'lost' && item.status === 'published'"
+        :item-id="item.id"
+      />
+
       <!-- 发布者视角：该物品收到的认领申请 -->
       <el-card
         v-if="isOwner"
@@ -188,6 +193,7 @@ import { Edit, Picture } from '@element-plus/icons-vue'
 import { addFavorite, getFavorite, getItem, offlineItem, removeFavorite, restoreItem } from '@/api/item'
 import { applyClaim, approveClaim, listReceivedClaims, rejectClaim } from '@/api/claim'
 import { useUserStore } from '@/stores/user'
+import SimilarFound from '@/components/SimilarFound.vue'
 import {
   CLAIM_STATUS_TEXT,
   ITEM_STATUS_TEXT,

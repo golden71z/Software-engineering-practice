@@ -21,6 +21,15 @@ class ItemCreate(BaseModel):
     images: list[str] = Field(default_factory=list, description="图片相对路径列表")
 
 
+class SimilarFoundOut(BaseModel):
+    id: int
+    title: str
+    location: str
+    event_time: datetime
+    thumbnail: str | None
+    reasons: list[str]
+
+
 class ItemUpdate(BaseModel):
     """编辑时所有字段可选，只更新传了的。"""
 

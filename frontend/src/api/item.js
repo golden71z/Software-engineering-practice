@@ -16,6 +16,9 @@ export const createItem = (data) => request.post('/api/v1/items', data)
 
 export const updateItem = (id, data) => request.put(`/api/v1/items/${id}`, data)
 
+export const deleteItem = (id) => request.delete(`/api/v1/items/${id}`)
+
 export const offlineItem = (id) => request.post(`/api/v1/items/${id}/offline`)
 
 export const restoreItem = (id) => request.post(`/api/v1/items/${id}/restore`)
+export const getSimilarFound = (id) => request.get(`/api/v1/items/${id}/similar-found`)

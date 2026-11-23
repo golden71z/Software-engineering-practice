@@ -7,7 +7,7 @@
 """
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 
 class UserCreate(BaseModel):
@@ -25,6 +25,31 @@ class UserLogin(BaseModel):
 
     username: str = Field(description="登录名或邮箱")
     password: str = Field(description="密码")
+
+
+class ProfileUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    email: EmailStr = Field(max_length=128)
+    real_name: str | None = Field(default=None, max_length=32)
+    phone: str | None = Field(default=None, min_length=11, max_length=11, pattern=r"^1[3-9][0-9]{9}$")
+
+    @field_validator("real_name", "phone", mode="before")
+    @classmethod
+    def empty_to_none(cls, value):
+        return value.strip() or None if isinstance(value, str) else value
+
+
+class PasswordChange(BaseModel):
+    current_password: str = Field(min_length=1, max_length=64)
+    new_password: str = Field(min_length=6, max_length=64)
+
+    @field_validator("new_password")
+    @classmethod
+    def validate_password_bytes(cls, value: str) -> str:
+        if len(value.encode("utf-8")) > 72:
+            raise ValueError("新密码 UTF-8 长度不能超过 72 字节")
+        return value
 
 
 class UserOut(BaseModel):

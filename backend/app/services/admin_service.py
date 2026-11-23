@@ -2,6 +2,7 @@
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import BusinessError, NotFoundError
+from app.core.security import hash_password
 from app.models.user import User
 from app.repositories import category_repo, claim_repo, item_repo, user_repo
 
@@ -58,6 +59,17 @@ def set_user_status(db: Session, operator: User, user_id: int, status: int) -> U
         raise BusinessError("不能禁用管理员账号")
 
     target.status = status
+    db.commit()
+    db.refresh(target)
+    return target
+
+
+def reset_user_password(db: Session, user_id: int) -> User:
+    """管理员将指定账号的密码重置为 usr123，数据库仍只保存哈希。"""
+    target = user_repo.get_by_id(db, user_id)
+    if target is None:
+        raise NotFoundError("用户不存在")
+    target.password_hash = hash_password("usr123")
     db.commit()
     db.refresh(target)
     return target
